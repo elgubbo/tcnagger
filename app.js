@@ -52,7 +52,7 @@ let fastComConfig = new SpeedTestConfig({
     resultSelector: '#speed-value'
 });
 let fastCom = new SpeedTest(fastComConfig);
-let fastComTc = new TeleColumbusService(fastCom, 30000, app.log, twitter, 60*60*3, 120, 50);
+let fastComTc = new TeleColumbusService(fastCom, 60*60*10, app.log, twitter, 60*60*60, 120, 50);
 let fastComTcObservable = fastComTc.start();
 fastComTcObservable.subscribe({
     next(res) {
