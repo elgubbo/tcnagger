@@ -1,0 +1,26 @@
+{
+  "name": "untitled",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "app-config": "^1.0.0",
+    "body-parser": "~1.17.1",
+    "co": "latest",
+    "co-wait": "0.0.0",
+    "cookie-parser": "~1.4.3",
+    "debug": "~2.6.3",
+    "express": "~4.15.2",
+    "jade": "~1.11.0",
+    "mongoose": "^4.11.5",
+    "morgan": "~1.8.1",
+    "phantomjs-prebuilt": "^2.1.14",
+    "promise": "latest",
+    "promise-phantom": "^3.1.6",
+    "serve-favicon": "~2.4.2",
+    "twit": "^2.2.9",
+    "zen-observable": "^0.5.2"
+  }
+}

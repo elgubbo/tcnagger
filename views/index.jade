@@ -1,0 +1,28 @@
+extends layout
+
+block content
+  h1= title
+  p Welcome to #{title}
+
+  table#data-table.table.table-hover
+    thead
+        tr
+            th Test Url
+            th Speed (MBit/s)
+            th Fehler
+            th Zeitpunkt
+            th Getwittert
+            th Prozent von soll
+    each item in speedLogs
+        tr
+            td= item.testUrl
+            td= item.speed
+            td= item.error
+            td= item.createdAt
+            td= item.tweeted
+            td= item.speedPercentage
+
+    script.
+        $(document).ready(function () {
+            $("#data-table").DataTable()
+        });

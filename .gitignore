@@ -1,0 +1,10 @@
+# Created by .ignore support plugin (hsz.mobi)
+/config/development/*
+/config/production/*
+/node_modules/
+/package-lock.json
+/telecolumbusnagger
+/telecolumbusnagger/.idea/
+/telecolumbusnagger/.idea/jsLinters/
+/telecolumbusnagger/.idea/modules.xml
+/telecolumbusnagger/.idea/vcs.xml
