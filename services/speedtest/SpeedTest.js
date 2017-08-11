@@ -53,8 +53,6 @@ class SpeedTest {
             const page = yield browser.createPage();
             page.customHeaders = this.customPageHeaders;
             const status = yield page.open(url);
-            let previousSpeed = '0';
-            let speed = '0';
             let result = {
                 url,
             };
@@ -74,28 +72,39 @@ class SpeedTest {
                 }, buttonSelector);
                 yield wait(2000);
             }
-
-
-            do {
-                previousSpeed = speed;
-                // we wait for the speed to change
-                yield wait(1000);
-
-                speed = yield page.evaluate(function (selector) {
-                    return $(selector).first().html();
-                }, resultSelector);
-
-                if (transformFn) {
-                    speed = transformFn.call(this, speed);
-                }
-
-            } while (((speed === null) && speed !== '') || speed !== previousSpeed);
-            result['speed'] = speed;
+            result = yield this.customPageEvaluation(page, result, transformFn);
             browser.exit();
             return result;
-        })
+        }.bind(this))
     }
 
+    /**
+     *
+     * @param page
+     * @param {Object} result
+     * @param {Function} transformFn
+     * @return {Object}
+     */
+    * customPageEvaluation(page, result, transformFn) {
+        let previousSpeed = '0';
+        let speed = '0';
+        do {
+            previousSpeed = speed;
+            // we wait for the speed to change
+            yield wait(1000);
+
+            speed = yield page.evaluate(function (selector) {
+                return $(selector).first().html();
+            }, this.resultSelector);
+
+            if (transformFn) {
+                speed = transformFn(speed);
+            }
+
+        } while (((speed === null) && speed !== '') || speed !== previousSpeed);
+        result['speed'] = speed;
+        return result;
+    }
 }
 
 module.exports = SpeedTest;

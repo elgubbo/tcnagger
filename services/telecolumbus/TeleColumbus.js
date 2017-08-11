@@ -1,25 +1,21 @@
 const SpeedLog = require('../../models/SpeedLog');
 const Observable = require('zen-observable');
+const BaseService = require('../BaseService');
 
-class TeleColumbus {
+class TeleColumbus extends BaseService {
 
     /**
-     * @param {SpeedTest} speedTest
-     * @param {Number} interval
-     * @param {Log} log
-     * @param {Twitter} twitter
-     * @param {Number} tweetInterval
-     * @param {Number} speedPaidFor
-     * @param {Number} [tweetSpeedThreshold=50]
+     * @param config
      */
-    constructor(speedTest, interval, log, twitter, tweetInterval, speedPaidFor, tweetSpeedThreshold) {
-        this.speedTest = speedTest;
-        this.interval = interval;
-        this.tweetInterval = tweetInterval;
-        this.speedPaidFor = speedPaidFor;
-        this.tweetThreshold = tweetSpeedThreshold || 50;
-        this.twitter = twitter;
-        this.log = log;
+    constructor(config) {
+        super(config.log);
+        let {speedTest, interval, twitter, tweetInterval, speedPaidFor, tweetSpeedThreshold} = config;
+        this._speedTest = speedTest;
+        this._interval = interval;
+        this._tweetInterval = tweetInterval;
+        this._speedPaidFor = speedPaidFor;
+        this._tweetThreshold = tweetSpeedThreshold || 50;
+        this._twitter = twitter;
     }
 
     /**
@@ -27,30 +23,21 @@ class TeleColumbus {
      * @return {Observable}
      */
     start() {
-        return this.getObservableSpeedTest().map(
+        this._observable = this.getObservableSpeedTest().map(
             (result) => {
-                result['speedPercentage'] = result.speed / this.speedPaidFor;
+                result['speedPercentage'] = result.speed / this._speedPaidFor;
                 return TeleColumbus.saveSpeedTestResultToDatabase(result)
                     .then(result => {
                         this.log.log('Saved SpeedLog to DB: ', result);
-                        this.tweetIfNecessary()
+                        this.tweetIfNecessary();
                         return result;
                     })
                     .catch((err) => {
                         this.log.error('COULD NOT SAVE RESULT TO DB: ', err);
                     })
             }
-        )
-    }
-
-    /**
-     * @public
-     */
-    stop() {
-        if (!this.timerInterval) {
-            this.log.error('Cannot stop Service. It has not been started');
-        }
-        clearInterval(this.timerInterval);
+        );
+        return super.start();
     }
 
     /**
@@ -59,7 +46,7 @@ class TeleColumbus {
      */
     getObservableSpeedTest() {
         return new Observable(observer => {
-
+            this._observer = observer;
             let speedTester = () => {
                 this.speedTest.doSpeedTest()
                     .then((result) => {
@@ -67,7 +54,7 @@ class TeleColumbus {
                     })
             };
 
-            this.timerInterval = setInterval(speedTester, this.interval);
+            this._timerInterval = setInterval(speedTester, this.interval);
         });
     }
 
@@ -90,17 +77,8 @@ class TeleColumbus {
     tweetIfNecessary() {
         let currentDate = new Date();
         let millis = currentDate.valueOf();
-        let date = new Date(millis - this.tweetInterval);
-        SpeedLog.findOne({createdAt: {$gt: date}, tweeted: true})
-        // if we can't find any SpeedLog within the tweetInterval that has been tweeted
-            .then(result => {
-                return result === null
-            })
-            // then we should find the latest SpeedLog that was created in the last tweetInterval
-            .then(shouldTweet => shouldTweet
-                ? SpeedLog.findSlowerThanPercentageAndNewerThanDateNotTweeted(this.tweetThreshold, date)
-                : null
-            )
+        let date = new Date(millis - this._tweetInterval);
+        SpeedLog.findSlowerThanPercentageAndNewerThanDateNotTweeted(this._tweetThreshold, date)
             // and tweet it
             .then(speedLog => this.tweetSpeedLog(speedLog))
             .catch(err => this.log.error('TeleColumbus: there has been an error while tweeting:', err))
@@ -115,11 +93,11 @@ class TeleColumbus {
         if (speedLog) {
             const tweet = this.compileTweet(speedLog);
             this.log.log(tweet);
-/*            this.twitter.tweet(tweet)
-                .then(_ => {
-                    speedLog.tweeted = true;
-                    speedLog.save();
-                })*/
+            /*            this.twitter.tweet(tweet)
+                            .then(_ => {
+                                speedLog.tweeted = true;
+                                speedLog.save();
+                            })*/
         }
         return null;
     }
@@ -130,7 +108,31 @@ class TeleColumbus {
      * @return {String}
      */
     compileTweet(speedLog) {
-        return `Meine Downloadgeschwindigkeit beträgt aktuell nur ${speedLog.speed}Mbit/s obwohl mein Tarif ${this.speedPaidFor}Mbit/s vorsieht. Das ist nicht gut`;
+        return `Meine Downloadgeschwindigkeit beträgt aktuell nur ${speedLog.speed}Mbit/s obwohl mein Tarif ${this._speedPaidFor}Mbit/s vorsieht. Das ist nicht gut`;
+    }
+
+    get speedTest() {
+        return this._speedTest;
+    }
+
+    get interval() {
+        return this._interval;
+    }
+
+    get tweetInterval() {
+        return this._tweetInterval;
+    }
+
+    get speedPaidFor() {
+        return this._speedPaidFor;
+    }
+
+    get tweetThreshold() {
+        return this._tweetThreshold;
+    }
+
+    get twitter() {
+        return this._twitter;
     }
 }
 

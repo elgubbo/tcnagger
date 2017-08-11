@@ -5,16 +5,11 @@ const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const Twit = require('twit');
 const config = require('app-config');
 
-const Log = require('./helpers/Log');
 //services
-const TeleColumbusService = require('./services/telecolumbus/TeleColumbus');
-const SpeedTestConfig = require('./services/speedtest/SpeedTestConfig');
-const SpeedTest = require('./services/speedtest/SpeedTest');
-const TwitterConfig = require('./services/twitter/TwitterConfig');
-const Twitter = require('./services/twitter/Twitter');
+const Log = require('./helpers/Log');
+const ServiceFactory = require('./services/ServiceFactory');
 
 // Routes
 const index = require('./routes/index');
@@ -25,6 +20,7 @@ let app = express();
 
 // set devmode
 app.set('devMode', app.get('env') === 'development');
+
 // setup logging
 app.log = new Log(app.get('devMode'));
 app.log.log(app.get('env'));
@@ -38,34 +34,38 @@ mongoose.connect(config.db.mongoUri, {
 const db = mongoose.connection;
 db.on('error', app.log.error.bind(app.log, 'MongoDB connection error:'));
 
-//setup twitter
-let twit = new Twit(config.twitter.twit);
-let twitterConfig = new TwitterConfig({
-    twit,
-    mingleInterval: config.twitter.mingleInterval,
-    pruneInterval: config.twitter.pruneInterval
-});
-let twitter = new Twitter(twitterConfig);
-//setup speedTest
-let fastComConfig = new SpeedTestConfig({
-    url: 'http://fast.com',
-    resultSelector: '#speed-value'
-});
-let fastCom = new SpeedTest(fastComConfig);
-let fastComTc = new TeleColumbusService(fastCom, 60*60*10, app.log, twitter, 60*60*60, 120, 50);
-let fastComTcObservable = fastComTc.start();
-fastComTcObservable.subscribe({
+// setup services TODO this has to move somewhere else
+let serviceFactoryConfig = Object.assign({}, config.twitter, config.services);
+app.services = new ServiceFactory(serviceFactoryConfig);
+let teleColumbus = app.services.teleColumbus;
+teleColumbus.log = app.log;
+teleColumbus.observable.subscribe({
     next(res) {
         res.then((res) => {
             app.log.log('SpeedTest Done with result:');
-            console.log(res);
+            console.log(res.speed);
         })
     },
     error(err) {
-        console.log(`Finished with error: `, err)
+        app.log.log(`Finished with error: `, err)
     },
     complete() {
-        console.log("Finished")
+        app.log.log("Finished")
+    }
+});
+
+let twitterBot = app.services.twitterBot;
+twitterBot.log = app.log;
+twitterBot.observable.subscribe({
+    next(res) {
+        app.log.log('Pruned/mingled with result:');
+        app.log.log(res);
+    },
+    error(err) {
+        app.log.log(`Finished with error: `, err)
+    },
+    complete() {
+        app.log.log("Finished TwitterBot")
     }
 });
 

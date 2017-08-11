@@ -1,31 +1,10 @@
-const co = require('co');
-
 class Twitter {
 
     /**
-     * @param {TwitterConfig} twitterConfig
+     * @param {Twit} twit
      */
-    constructor(twitterConfig) {
-        this._subscriptions = [];
-        this._config = twitterConfig;
-        this._twit = twitterConfig.twit;
-    }
-
-    /**
-     * @public
-     * @param {Observable <String>} observable - observable that delivers a tweet object
-     */
-    tweetObservable(observable) {
-        let subscription = observable.subscribe((status) => {
-            // TODO add logging of failed tweets?
-            try {
-                this.tweet(status);
-            } catch (e) {
-                console.error('Twitter: there has been an error while tweeting: ');
-                console.dir(e);
-            }
-        });
-        this.subscriptions.push(subscription);
+    constructor(twit) {
+        this._twit = twit
     }
 
     /**
@@ -37,7 +16,7 @@ class Twitter {
         // first get all followers
         return this.twit.get('followers/ids')
             .then((reply) => {
-                return reply.ids;
+                return reply.data.ids;
             })
             // then select a random follower and get his followers
             .then(followers => {
@@ -46,7 +25,7 @@ class Twitter {
             })
             // then follow a random friend of that follower
             .then(reply => {
-                let friendsFollowers = reply.ids;
+                let friendsFollowers = reply.data.ids;
                 let randomFriendOfFriend = this.randIndex(friendsFollowers);
                 return this.twit.post('friendships/create', { id: randomFriendOfFriend });
             })
@@ -65,30 +44,37 @@ class Twitter {
         // first get all followers
         return this.twit.get('followers/ids')
             .then((reply) => {
-                followers = reply.ids;
+                followers = reply.data.ids;
             })
             // then get current Friends
             .then(() => this.twit.get('friends/ids'))
             // then find a friend that is not a follower
-            .then((reply) => {
-                let friends = reply.ids;
-                let pruneTarget = null;
-
-                while(!pruneTarget) {
-                    let target = this.randIndex(friends);
-
-                    if(followers.indexOf(target) < 0) {
-                        pruneTarget = target;
-                    }
-                }
-                return pruneTarget;
-            })
+            .then((reply) => this.findPruneTarget(reply.data.ids, followers))
             // then unfollow that friend
-            .then(pruneTarget => this.twit.post('friendships/destroy', { id: pruneTarget }))
+            .then(pruneTarget => pruneTarget ? this.twit.post('friendships/destroy', { id: pruneTarget }) : null)
             .catch((err) => {
-                console.error('Twitter: there has been an error while pruning');
-                console.dir(err);
+                this.log.error('Twitter: there has been an error while pruning');
+                this.log.error(err);
             })
+    }
+
+    /**
+     * @private
+     * @param {Number[]} friends
+     * @param {Number[]} followers
+     * @return {Number|null}
+     */
+    findPruneTarget(friends, followers) {
+        let pruneTarget = null;
+
+        while (!pruneTarget) {
+            let target = this.randIndex(friends);
+
+            if (followers.indexOf(target) < 0) {
+                pruneTarget = target;
+            }
+        }
+        return pruneTarget;
     }
 
     /**
@@ -107,38 +93,6 @@ class Twitter {
     }
 
     /**
-     * Starts the twitterbot
-     * @public
-     */
-    start() {
-        this.isStarted = true;
-        this.mingleInterval = setInterval(this.mingle, this.config.mingleInterval);
-        this.pruneInterval = setInterval(this.prune, this.config.pruneInterval);
-    }
-
-    /**
-     * Stops the twitterbot
-     * @public
-     */
-    stop() {
-        if (!this.isStarted) {
-            console.error('Cannot stop TwitterService because it has not been started');
-            return;
-        }
-        clearInterval(this.mingleInterval);
-        clearInterval(this.pruneInterval);
-        this.unsubscribeObservables();
-        this.isStarted = false;
-    }
-
-    /**
-     * @private
-     */
-    unsubscribeObservables() {
-        this.subscriptions.map((disposable) => {disposable.unsubscribe()});
-    }
-
-    /**
      * Returns a random item from the given Array
      * @param {Array} arr
      * @returns {*}
@@ -150,14 +104,6 @@ class Twitter {
 
     get twit() {
         return this._twit;
-    }
-
-    get config() {
-        return this._config;
-    }
-
-    get subscriptions() {
-        return this._subscriptions;
     }
 }
 

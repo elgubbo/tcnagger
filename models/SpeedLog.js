@@ -20,7 +20,7 @@ SpeedLogSchema.statics.findSlowerThanPercentageAndNewerThanDateNotTweeted = func
     return this.findOne({
         speedPercentage: {$lt: percentage},
         tweeted: false,
-            createdAt: {$gt: date}
+        createdAt: {$gt: date}
     })
 };
 
