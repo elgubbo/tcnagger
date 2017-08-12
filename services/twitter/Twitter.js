@@ -4,7 +4,7 @@ class Twitter {
      * @param {Twit} twit
      */
     constructor(twit) {
-        this._twit = twit
+        this._twit = twit;
     }
 
     /**
@@ -37,6 +37,7 @@ class Twitter {
 
     /**
      * Removes a Friend that does not follow back
+     * @public
      * @returns {Promise}
      */
     prune() {
@@ -66,13 +67,15 @@ class Twitter {
      */
     findPruneTarget(friends, followers) {
         let pruneTarget = null;
+        let triesLeft = 20;
 
-        while (!pruneTarget) {
+        while (!pruneTarget && triesLeft) {
             let target = this.randIndex(friends);
 
             if (followers.indexOf(target) < 0) {
                 pruneTarget = target;
             }
+            triesLeft--;
         }
         return pruneTarget;
     }

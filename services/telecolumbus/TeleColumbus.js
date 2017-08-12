@@ -85,7 +85,7 @@ class TeleColumbus extends BaseService {
     }
 
     /**
-     *
+     * @private
      * @param speedLog
      * @return {Promise|null}
      */

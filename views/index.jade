@@ -3,24 +3,33 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
-
-  table#data-table.table.table-hover
-    thead
-        tr
-            th Test Url
-            th Speed (MBit/s)
-            th Fehler
-            th Zeitpunkt
-            th Getwittert
-            th Prozent von soll
-    each item in speedLogs
-        tr
-            td= item.testUrl
-            td= item.speed
-            td= item.error
-            td= item.createdAt
-            td= item.tweeted
-            td= item.speedPercentage
+  div.buttons.row
+      div.col-md-4.col-md-offset-8
+          button.btn.btn-primary
+            span.glyphicon(class=teleColumbusRunning ? "glyphicon glyphicon-remove" : "glyphicon glyphicon-ok")
+            | TeleColumbusService
+          button.btn.btn-primary
+              span.glyphicon(class=twitterBotRunning ? "glyphicon glyphicon-remove" : "glyphicon glyphicon-ok")
+              | TwitterBot
+  div.row.grid-row
+      div.col-md-12
+        table#data-table.table.table-hover
+            thead
+                tr
+                    th Test Url
+                    th Speed (MBit/s)
+                    th Prozent von soll
+                    th Getwittert
+                    th Fehler
+                    th Zeitpunkt
+            each item in speedLogs
+                tr
+                    td= item.testUrl
+                    td= item.speed
+                    td= item.speedPercentage
+                    td= item.tweeted
+                    td= item.error
+                    td= item.createdAt
 
     script.
         $(document).ready(function () {

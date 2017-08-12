@@ -15,8 +15,12 @@ class TwitterBot extends BaseService {
         this._pruneToMingleRatio = pruneToMingleRatio || 0.5;
     }
 
+    /**
+     * @return {Observable}
+     */
     start() {
         this._observable = new Observable(observer => {
+            this._observer = observer;
 
             let twitterBotAction = () => {
                 this.twitterAction()
@@ -31,7 +35,7 @@ class TwitterBot extends BaseService {
     }
 
     /**
-     *
+     * @protected
      * @return {Promise}
      */
     twitterAction() {

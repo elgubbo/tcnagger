@@ -1,3 +1,5 @@
+const Log = require('./../helpers/Log');
+
 class BaseService {
 
     constructor(log) {
@@ -20,7 +22,9 @@ class BaseService {
         if (!this._isRunning) {
             this.log.error('Cannot stop Service. It has not been started');
         }
-        this._observer.complete();
+        if (this._observer) {
+            this._observer.complete();
+        }
         clearInterval(this._timerInterval);
         this._isRunning = false;
     }
@@ -44,6 +48,10 @@ class BaseService {
 
     set log(log) {
         this._log = log;
+    }
+
+    get isRunning() {
+        return this._isRunning;
     }
 }
 
